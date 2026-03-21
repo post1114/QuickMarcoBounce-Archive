@@ -57,6 +57,7 @@ object ModuleManager : Listenable, Collection<Module> by MODULE_REGISTRY {
             AttackEffects,
             AutoAccount,
             AutoArmor,
+            ArmorBreaker,
             AutoBow,
             AutoBreak,
             AutoClicker,

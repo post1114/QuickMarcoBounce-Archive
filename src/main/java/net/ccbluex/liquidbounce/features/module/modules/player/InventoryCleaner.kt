@@ -57,6 +57,9 @@ object InventoryCleaner : Module("InventoryCleaner", Category.PLAYER) {
 
     private val maxFishingRodStacks by int("MaxFishingRodStacks", 1, 1..10).subjective()
 
+    private val maxSwords by int("MaxSwords", 5, 1..36) { limitStackCounts }.subjective()
+    private val keepKnockbackWoodSword by boolean("KeepKnockbackWoodSword", true).subjective()
+
     private val mergeStacks by boolean("MergeStacks", true).subjective()
 
     private val repairEquipment by boolean("RepairEquipment", true).subjective()
@@ -526,10 +529,7 @@ object InventoryCleaner : Module("InventoryCleaner", Category.PLAYER) {
                     it.durability.toFloat() * it.getEnchantmentLevel(Enchantment.efficiency)
                 }
 
-            is ItemSword ->
-                hasBestParameters(stack, stacks, entityStacksMap) {
-                    it.attackDamage.toFloat()
-                }
+            is ItemSword -> isUsefulSword(stack, stacks, entityStacksMap)
 
             is ItemBow ->
                 hasBestParameters(stack, stacks, entityStacksMap) {
@@ -730,6 +730,102 @@ object InventoryCleaner : Module("InventoryCleaner", Category.PLAYER) {
 
         // If sorting is checking if item is strictly the best option, only return true for items that have no better alternatives
         return if (strictlyBest) betterCount == 0 else betterCount < maxBlockStacks
+    }
+
+    private fun isUsefulSword(
+        stack: ItemStack?, stacks: List<ItemStack?>,
+        entityStacksMap: Map<ItemStack, EntityItem>? = null,
+    ): Boolean {
+        val item = stack?.item ?: return false
+
+        if (item !is ItemSword) return false
+
+        val index = stacks.indexOf(stack)
+
+        val isSorted = canBeSortedTo(index, item, stacks.size)
+
+        if (isSorted) return true
+
+        val stacksToIterate = stacks.toMutableList()
+
+        var distanceSqToItem = .0
+
+        if (!entityStacksMap.isNullOrEmpty()) {
+            distanceSqToItem = mc.thePlayer.getDistanceSqToEntity(entityStacksMap[stack] ?: return false)
+            stacksToIterate += entityStacksMap.keys
+        }
+
+        val isKnockbackWoodSword = isKnockbackWoodSword(stack)
+
+        if (keepKnockbackWoodSword && isKnockbackWoodSword) {
+            val hasBetterKnockbackWoodSword = stacksToIterate.any { otherStack ->
+                if (otherStack == stack || otherStack == null) return@any false
+
+                val otherItem = otherStack.item ?: return@any false
+
+                if (otherItem !is ItemSword) return@any false
+
+                val otherIsKnockbackWoodSword = isKnockbackWoodSword(otherStack)
+
+                if (!otherIsKnockbackWoodSword) return@any false
+
+                val otherIndex = stacks.indexOf(otherStack)
+                val isOtherSorted = canBeSortedTo(otherIndex, otherItem, stacks.size)
+
+                otherStack.attackDamage > stack.attackDamage ||
+                        (!isSorted && (isOtherSorted || otherIndex > index))
+            }
+
+            if (!hasBetterKnockbackWoodSword) {
+                val knockbackWoodSwordsCount = stacks.count { it != null && isKnockbackWoodSword(it) }
+                return knockbackWoodSwordsCount <= 1
+            }
+
+            return false
+        }
+
+        val betterCount = stacksToIterate.withIndex().count { (otherIndex, otherStack) ->
+            if (otherStack == stack) return@count false
+
+            val otherItem = otherStack?.item ?: return@count false
+
+            if (otherItem !is ItemSword) return@count false
+
+            val otherIndex = if (otherIndex > stacks.lastIndex) -1 else otherIndex
+
+            val otherIsKnockbackWoodSword = isKnockbackWoodSword(otherStack)
+
+            if (keepKnockbackWoodSword && otherIsKnockbackWoodSword && !isKnockbackWoodSword) {
+                val knockbackWoodSwordsCount = stacks.count { it != null && isKnockbackWoodSword(it) }
+                if (knockbackWoodSwordsCount <= 1) return@count false
+            }
+
+            when (otherStack.attackDamage.compareTo(stack.attackDamage)) {
+                1 -> true
+                0 -> {
+                    if (index == otherIndex) {
+                        val otherEntityItem = entityStacksMap?.get(otherStack) ?: return@count false
+                        distanceSqToItem > mc.thePlayer.getDistanceSqToEntity(otherEntityItem)
+                    } else {
+                        val isOtherSorted = canBeSortedTo(otherIndex, otherItem, stacks.size)
+                        !isSorted && (isOtherSorted || otherIndex > index)
+                    }
+                }
+                else -> false
+            }
+        }
+
+        return if (!limitStackCounts) betterCount == 0 else betterCount < maxSwords
+    }
+
+    private fun isKnockbackWoodSword(stack: ItemStack): Boolean {
+        val item = stack.item as? ItemSword ?: return false
+
+        if (stack.item != Items.wooden_sword) return false
+
+        val knockbackLevel = stack.getEnchantmentLevel(net.minecraft.enchantment.Enchantment.knockback)
+
+        return knockbackLevel > 0
     }
 
     private fun isUsefulThrowable(
