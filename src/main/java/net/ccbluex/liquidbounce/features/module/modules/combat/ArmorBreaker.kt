@@ -18,6 +18,8 @@ import net.minecraft.init.Items
 /**
  * ArmorBreaker
  * Created by post1114
+ * AI CODE
+ * Hasn't gone through error checking or run tests
  */
 
 object ArmorBreaker : Module("ArmorBreaker", Category.COMBAT, subjective = true) {
