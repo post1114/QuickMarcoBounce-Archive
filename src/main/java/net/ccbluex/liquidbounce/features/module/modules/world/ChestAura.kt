@@ -10,6 +10,7 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.Module
 import net.ccbluex.liquidbounce.features.module.modules.combat.KillAura
 import net.ccbluex.liquidbounce.features.module.modules.player.Blink
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffolds.Scaffold
 import net.ccbluex.liquidbounce.utils.attack.EntityUtils.isSelected
 import net.ccbluex.liquidbounce.utils.block.block
 import net.ccbluex.liquidbounce.utils.client.PacketUtils.sendPacket
@@ -103,7 +104,7 @@ object ChestAura : Module("ChestAura", Category.WORLD) {
     )
 
     val onRotationUpdate = handler<RotationUpdateEvent> {
-        if (Blink.handleEvents() || KillAura.isBlockingChestAura || !timer.hasTimePassed(delay))
+        if (Blink.handleEvents() || KillAura.isBlockingChestAura || !timer.hasTimePassed(delay) || Scaffold.handleEvents())
             return@handler
 
         val thePlayer = mc.thePlayer ?: return@handler
@@ -270,6 +271,9 @@ object ChestAura : Module("ChestAura", Category.WORLD) {
     }
 
     val onTick = handler<GameTickEvent> {
+        if (Scaffold.handleEvents())
+            return@handler
+
         val player = mc.thePlayer ?: return@handler
         val target = tileTarget ?: return@handler
 
