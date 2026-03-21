@@ -209,9 +209,8 @@ object ArmorBreaker : Module("ArmorBreaker", Category.COMBAT, subjective = true)
      * 判断是否应该进行武器排序
      */
     private fun shouldSortWeapons(): Boolean {
-        // 检查 PreferWeapon 模块是否启用
-        val preferWeapon = KillAura
-        return preferWeapon.handleEvents()
+        // 始终启用武器排序
+        return true
     }
 
     /**
