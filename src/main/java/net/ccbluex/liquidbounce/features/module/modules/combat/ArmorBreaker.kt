@@ -6,7 +6,10 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.Module
 import net.ccbluex.liquidbounce.features.module.modules.player.Gapple
 import net.ccbluex.liquidbounce.utils.inventory.SilentHotbar
+import net.ccbluex.liquidbounce.utils.inventory.getEnchantmentLevel
+import net.ccbluex.liquidbounce.utils.inventory.attackDamage
 import net.ccbluex.liquidbounce.utils.attack.EntityUtils.isSelected
+import net.ccbluex.liquidbounce.utils.extensions.isClientFriend
 import net.minecraft.enchantment.Enchantment
 import net.minecraft.entity.EntityLivingBase
 import net.minecraft.entity.player.EntityPlayer
@@ -64,7 +67,7 @@ object ArmorBreaker : Module("ArmorBreaker", Category.COMBAT, subjective = true)
         }
 
         val currentWeapon = player.heldItem
-        val currentDamage = currentWeapon?.attackDamage ?: 0f
+        val currentDamage = currentWeapon?.attackDamage?.toFloat() ?: 0f
 
         val bestWeaponSlot = findBestWeapon(currentDamage, target)
 
@@ -85,7 +88,7 @@ object ArmorBreaker : Module("ArmorBreaker", Category.COMBAT, subjective = true)
         val player = mc.thePlayer ?: return null
 
         var nearestTarget: EntityLivingBase? = null
-        var nearestDistance = Double.MAX_VALUE
+        var nearestDistance = Float.MAX_VALUE
 
         for (entity in mc.theWorld.loadedEntityList) {
             if (entity !is EntityLivingBase) continue
@@ -138,7 +141,7 @@ object ArmorBreaker : Module("ArmorBreaker", Category.COMBAT, subjective = true)
 
             if (isGodAxe(stack)) continue
 
-            val weaponDamage = stack.attackDamage
+            val weaponDamage = stack.attackDamage.toFloat()
 
             val damageIncrease = weaponDamage - currentDamage
 
